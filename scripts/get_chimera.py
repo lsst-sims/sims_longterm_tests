@@ -45,9 +45,9 @@ def get_chimera(baseline_path, sim_to_cut_path, cutoff_date, cutoff_date_format,
     fname += f"{baseline_path.split('/')[-1].split('.db')[0]}_cutoff{cutoff_mjd}.db"
 
     # lets see if the db exists already
-    if os.path.exists(fname):
-        print(f'## chimera sim exists already: {fname}')
-        return fname
+    if os.path.exists(f'{outdir}/{fname}'):
+        print(f'## chimera sim exists already: {outdir}/{fname}\n')
+        return f'{outdir}/{fname}'
 
     # first get the visits upto the cutoff date
     conn = sqlite3.connect(sim_to_cut_path)
