@@ -1,0 +1,8 @@
+# paths
+basepath: '/sdf/data/rubin/shared/fbs_sims/sims_longterm_tests/'
+outdir: '/sdf/data/rubin/shared/fbs_sims/sims_longterm_tests/metrics/'
+
+# misc
+nside: 64
+timepts: [0, 3652, 100]  # start, end, npoints
+tag_to_look_for: '_10yrs.db'
