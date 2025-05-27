@@ -1,6 +1,6 @@
 # paths
 basepath: '/sdf/data/rubin/shared/fbs_sims/sims_longterm_tests/'
-outdir: '/sdf/data/rubin/shared/fbs_sims/sims_longterm_tests/metrics/'
+outdir: '/sdf/data/rubin/shared/fbs_sims/sims_longterm_tests/'
 
 # misc
 nside: 64
