@@ -19,5 +19,5 @@ scheduler_args: {
                 }
 # misc
 nside: 64
-timepts: [0, 3652, 100]  # start, end, npoints
+timepts: [0, 3652, 100]  # start, end, npoints for the vector metric
 tag_to_look_for: '_10yrs.db'

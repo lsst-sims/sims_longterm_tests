@@ -41,6 +41,7 @@ parser.add_option('--cutoff', dest='cutoff_date',
 # ---------------------------------------------------------
 start_time = time.time()
 options, _ = parser.parse_args()
+print(options)
 # read inputs
 config_path = options.config_path
 fonv_base = options.fonv_base
@@ -48,7 +49,7 @@ chimera = options.chimera
 bespoke_sim_only = options.bespoke_sim_only
 bespoke_opsim_fname = options.bespoke_opsim_fname
 bespoke_metrics = options.bespoke_metrics
-cutoff_date = options.cutoff_date #'2026-03-01'
+cutoff_date = options.cutoff_date
 if (chimera or bespoke_sim_only or bespoke_metrics) and cutoff_date is None:
     raise ValueError('## must specify cutoff_date when using chimera or ' +
                      'bespoke flags.')
