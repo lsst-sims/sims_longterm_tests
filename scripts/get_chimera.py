@@ -24,22 +24,13 @@ def get_chimera(baseline_path, sim_to_cut_path, cutoff_date, cutoff_date_format,
     * cutoff_date_format: str: format for cutoff_date, e.g. 'mjd', 'isot'
     * outdir: str: output directory
 
-    optional inputs
-    ---------------
-    * redo_calc: bool: set to False to read the saved outputs.
-                       default: True
-    * save_data: bool: set to True to save the metric value.
-                       default: False
-    * output_tag: str: tag to put in the output file; signifies combo of db,
-                       constraint, etc. default: None
-
     returns
     -------
     * path to the new database
 
     """
     # ---------------------------------------------------------
-    cutoff_mjd = Time(cutoff_date, format=cutoff_date_format).mjd
+    cutoff_mjd = Time(f'{cutoff_date}T12:00:00', format=cutoff_date_format).mjd
     # fname to save
     fname = f"chimera_{sim_to_cut_path.split('/')[-1].split('.db')[0]}_"
     fname += f"{baseline_path.split('/')[-1].split('.db')[0]}_cutoff{cutoff_mjd}.db"

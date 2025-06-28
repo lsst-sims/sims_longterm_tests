@@ -6,22 +6,34 @@ import numpy as np
 import yaml
 import time
 from optparse import OptionParser
-from get_fnovtime import get_fnovtime
+from get_fonvtime import get_fonvtime
 from get_chimera import get_chimera
+from get_bespoke import get_bespoke
 import pickle
 ###############################################################################
 parser = OptionParser()
 parser.add_option('--config', dest='config_path',
                   help='path to (yml) config file with outdir path, etc.'
                   )
-parser.add_option('--fnovbase', dest='fnov_base',
+parser.add_option('--fonvbase', dest='fonv_base',
                   action='store_true', default=False,
-                  help='flag to run fnov vector metric on baseline+weather ' +
+                  help='flag to run fonv vector metric on baseline+weather ' +
                   'sims; saves data.'
                   )
 parser.add_option('--chimera', dest='chimera',
                   action='store_true', default=False,
                   help='flag to generate chimera sims + run metrics on them.'
+                  )
+parser.add_option('--bespoke-sim-only', dest='bespoke_sim_only',
+                  action='store_true', default=False,
+                  help='flag to generate bespoke sim (ONE only).'
+                  )
+parser.add_option('--bespoke-opsim-fname', dest='bespoke_opsim_fname',
+                  help='path to the sim to cut and generate a bespoke sim for.'
+                  )
+parser.add_option('--bespoke-metrics', dest='bespoke_metrics',
+                  action='store_true', default=False,
+                  help='flag to read in the generated bespoke sims + run metrics on them.'
                   )
 parser.add_option('--cutoff', dest='cutoff_date',
                   help='date for cutoff; YYYY-MM-DD format.'
@@ -29,13 +41,21 @@ parser.add_option('--cutoff', dest='cutoff_date',
 # ---------------------------------------------------------
 start_time = time.time()
 options, _ = parser.parse_args()
+print(options)
 # read inputs
 config_path = options.config_path
-fnov_base = options.fnov_base
+fonv_base = options.fonv_base
 chimera = options.chimera
-cutoff_date = options.cutoff_date #'2026-03-01'
-if chimera and cutoff_date is None:
-    raise ValueError(f'## must specify cutoff_date when using chimera flag.')
+bespoke_sim_only = options.bespoke_sim_only
+bespoke_opsim_fname = options.bespoke_opsim_fname
+bespoke_metrics = options.bespoke_metrics
+cutoff_date = options.cutoff_date
+if (chimera or bespoke_sim_only or bespoke_metrics) and cutoff_date is None:
+    raise ValueError('## must specify cutoff_date when using chimera or ' +
+                     'bespoke flags.')
+if bespoke_sim_only and bespoke_opsim_fname is None:
+    raise ValueError('## must specify bespoke_opsim_fname to run ' +
+                     'bespoke_sim_only')
 
 # load the config
 with open(config_path, 'r') as stream:
@@ -58,14 +78,14 @@ outdir_metrics= f'{outdir}/metrics/'
 os.makedirs(outdir_metrics, exist_ok=True)
 # now run
 # ---------------------------------------------------------------
-if fnov_base:
+if fonv_base:
     # ---------------------------------------------------------------
     time0 = time.time()
     print(f'## running vector metric for baseline sims ...')
     save_data = True
-    fnovs_time_all, fnovs_time_per_filter = {}, {}
+    fonvs_time_all, fonvs_time_per_filter = {}, {}
     # outdir for the interim outputs
-    subdir = f'{outdir_metrics}/fnovs_base'
+    subdir = f'{outdir_metrics}/fonvs_base'
     os.makedirs(subdir, exist_ok=True)
     # ---------------------------------------------------------------
     # loop over the two folders
@@ -81,7 +101,7 @@ if fnov_base:
             # median nvisits over survey area as a function of time
             # all filters
             constraint = "scheduler_note not like '%DD%'"
-            fnovs_time_all[db_tag] = get_fnovtime(constraint=constraint,
+            fonvs_time_all[db_tag] = get_fonvtime(constraint=constraint,
                                                   nside=nside,
                                                   time_points=time_points,
                                                   opsim_path=opsim_path,
@@ -93,9 +113,9 @@ if fnov_base:
             # now by filter
             for filt in 'ugrizy':
                 constraint = f"scheduler_note not like '%DD%' and filter='{filt}'"
-                if filt not in fnovs_time_per_filter:
-                    fnovs_time_per_filter[filt] = {}
-                fnovs_time_per_filter[filt][db_tag] = get_fnovtime(constraint=constraint,
+                if filt not in fonvs_time_per_filter:
+                    fonvs_time_per_filter[filt] = {}
+                fonvs_time_per_filter[filt][db_tag] = get_fonvtime(constraint=constraint,
                                                                    nside=nside,
                                                                    time_points=time_points,
                                                                    opsim_path=opsim_path,
@@ -105,13 +125,13 @@ if fnov_base:
                                                                    )
     # ---------------------------------------------------------------
     # now save
-    fname = 'fnovs_vector_base.pickle'
-    pickle.dump({'fnovs_time_all': fnovs_time_all,
-                 'fnovs_time_per_filter': fnovs_time_per_filter
+    fname = 'fonvs_vector_base.pickle'
+    pickle.dump({'fonvs_time_all': fonvs_time_all,
+                 'fonvs_time_per_filter': fonvs_time_per_filter
                  },
                  open(f'{outdir_metrics}/{fname}', 'wb')
                  )
-    print(f'## fnovs dicts saved in {fname}.')
+    print(f'## fonvs dicts saved in {fname}.')
     print(f'## time taken: {(time.time() - time0)/60:.2f} (min)')
     # ---------------------------------------------------------------
 
@@ -124,10 +144,10 @@ if chimera:
     outdir_chimera = f'{outdir}/chimera/'
     os.makedirs(outdir_chimera, exist_ok=True)
     # outdir for the interim outputs
-    subdir = f'{outdir_metrics}/fnovs_chimera/'
+    subdir = f'{outdir_metrics}/fonvs_chimera/'
     os.makedirs(subdir, exist_ok=True)
     # set up
-    chimera_fnovs_time_all, chimera_fnovs_time_per_filter = {}, {}
+    chimera_fonvs_time_all, chimera_fonvs_time_per_filter = {}, {}
     save_data = True
     # set up the baseline path
     baseline_path = [f for f in os.listdir(f'{basepath}/baseline/') if \
@@ -159,7 +179,7 @@ if chimera:
             # nvisits as a function of time
             # all filters
             constraint = "scheduler_note not like '%DD%'"
-            chimera_fnovs_time_all[db_tag] = get_fnovtime(constraint=constraint,
+            chimera_fonvs_time_all[db_tag] = get_fonvtime(constraint=constraint,
                                                           nside=nside,
                                                           time_points=time_points,
                                                           opsim_path=opsim_path,
@@ -171,9 +191,9 @@ if chimera:
             # now by filter
             for filt in 'ugrizy':
                 constraint = f"scheduler_note not like '%DD%' and filter='{filt}'"
-                if filt not in chimera_fnovs_time_per_filter:
-                    chimera_fnovs_time_per_filter[filt] = {}
-                chimera_fnovs_time_per_filter[filt][db_tag] = get_fnovtime(constraint=constraint,
+                if filt not in chimera_fonvs_time_per_filter:
+                    chimera_fonvs_time_per_filter[filt] = {}
+                chimera_fonvs_time_per_filter[filt][db_tag] = get_fonvtime(constraint=constraint,
                                                                            nside=nside,
                                                                            time_points=time_points,
                                                                            opsim_path=opsim_path,
@@ -183,14 +203,110 @@ if chimera:
                                                                            )
     #  ---------------------------------------------------------------
     # now save
-    fname = f'fnovs_vector_chimera_cutoff{cutoff_date}.pickle'
-    pickle.dump({'chimera_fnovs_time_all': chimera_fnovs_time_all,
-                 'chimera_fnovs_time_per_filter': chimera_fnovs_time_per_filter
+    fname = f'fonvs_vector_chimera_cutoff{cutoff_date}.pickle'
+    pickle.dump({'chimera_fonvs_time_all': chimera_fonvs_time_all,
+                 'chimera_fonvs_time_per_filter': chimera_fonvs_time_per_filter
                  },
                  open(f'{outdir_metrics}/{fname}', 'wb')
                  )
-    print(f'## chimera fnovs dicts saved in {fname}.')
+    print(f'## chimera fonvs dicts saved in {fname}.')
     print(f'## time taken: {(time.time() - time0)/60:.2f} (min)')
     # ---------------------------------------------------------------
+
+# ---------------------------------------------------------------
+if bespoke_sim_only or bespoke_metrics:
+    # ---------------------------------------------------------------
+    time0 = time.time()
+    print(f'## working on bespoke sims ...')
+    # outdir for bespoke sims
+    outdir_bespoke = f'{outdir}/bespoke/'
+    os.makedirs(outdir_bespoke, exist_ok=True)
+
+    baseline_py_path = config['baseline_py_path']
+    illum_limit = config['illum_limit']
+    scheduler_args = config['scheduler_args']
+
+    if bespoke_sim_only:
+        print(f'## working with {bespoke_opsim_fname}')
+        # ---------------------------------------------------------------
+        # generate the chimera sim
+        opsim_path = get_bespoke(baseline_py_path=baseline_py_path,
+                                 sim_to_cut_path=bespoke_opsim_fname,
+                                 cutoff_date=cutoff_date,
+                                 cutoff_date_format='isot',
+                                 outdir=outdir_bespoke,
+                                 scheduler_args=scheduler_args
+                                 )
+        print(f'## time taken: {(time.time() - time0)/60:.2f} (min)')
+        # ---------------------------------------------------------------
+
+    if bespoke_metrics:
+        # outdir for the interim outputs
+        subdir = f'{outdir_metrics}/fonvs_bespoke/'
+        os.makedirs(subdir, exist_ok=True)
+        # set up
+        bespoke_fonvs_time_all, bespoke_fonvs_time_per_filter = {}, {}
+        save_data = True
+        # loop over the weather sims
+        for cat in ['weather']:
+            dbpath = f'{basepath}/{cat}'
+            for opsim_fname in [f for f in os.listdir(dbpath) if f.endswith(tag_to_look_for)]:
+                print(f'## working with {opsim_fname}')
+                db_tag = opsim_fname.split(tag_to_look_for)[0]
+                opsim_path = f'{dbpath}/{opsim_fname}'
+                # ---------------------------------------------------------------
+                # generate the chimera sim
+                opsim_path = get_bespoke(baseline_py_path=baseline_py_path,
+                                        sim_to_cut_path=opsim_path,
+                                        cutoff_date=cutoff_date,
+                                        cutoff_date_format='isot',
+                                        outdir=outdir_bespoke,
+                                        scheduler_args=scheduler_args,
+                                        exists_only=True
+                                        )
+                if opsim_path is None:
+                    raise ValueError('## attempting to generate bespoke sim when shouldnt' +
+                                     ' .. this typically means the sim(s) need to have been ' +
+                                     'generated already before using the bespoke-metrics flag.')
+                # now run things for the sim
+                db_tag = f'bespoke_cutoff{cutoff_date}_{db_tag}'
+                print(opsim_path)
+                # ---------------------------------------------------------------
+                # nvisits as a function of time
+                # all filters
+                constraint = "scheduler_note not like '%DD%'"
+                bespoke_fonvs_time_all[db_tag] = get_fonvtime(constraint=constraint,
+                                                            nside=nside,
+                                                            time_points=time_points,
+                                                            opsim_path=opsim_path,
+                                                            outdir=subdir,
+                                                            save_data=save_data,
+                                                            output_tag=f'{db_tag}_allfilts'
+                                                            )
+                # ---------------------------------------------------------------
+                # now by filter
+                for filt in 'ugrizy':
+                    constraint = f"scheduler_note not like '%DD%' and filter='{filt}'"
+                    if filt not in bespoke_fonvs_time_per_filter:
+                        bespoke_fonvs_time_per_filter[filt] = {}
+                    bespoke_fonvs_time_per_filter[filt][db_tag] = get_fonvtime(constraint=constraint,
+                                                                            nside=nside,
+                                                                            time_points=time_points,
+                                                                            opsim_path=opsim_path,
+                                                                            outdir=subdir,
+                                                                            save_data=save_data,
+                                                                            output_tag=f'{db_tag}_{filt}'
+                                                                            )
+        #  ---------------------------------------------------------------
+        # now save
+        fname = f'fonvs_vector_bespoke_cutoff{cutoff_date}.pickle'
+        pickle.dump({'bespoke_fonvs_time_all': bespoke_fonvs_time_all,
+                    'bespoke_fonvs_time_per_filter': bespoke_fonvs_time_per_filter
+                    },
+                    open(f'{outdir_metrics}/{fname}', 'wb')
+                    )
+        print(f'## bespoke fonvs dicts saved in {fname}.')
+        print(f'## time taken: {(time.time() - time0)/60:.2f} (min)')
+        # ---------------------------------------------------------------
 
 print(f'## overall time taken: {(time.time() - start_time)/60:.2f} (min)')
