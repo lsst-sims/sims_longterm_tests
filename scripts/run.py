@@ -6,7 +6,7 @@ import numpy as np
 import yaml
 import time
 from optparse import OptionParser
-from get_fnovtime import get_fnovtime
+from get_fonvtime import get_fonvtime
 from get_chimera import get_chimera
 import pickle
 ###############################################################################
@@ -14,9 +14,9 @@ parser = OptionParser()
 parser.add_option('--config', dest='config_path',
                   help='path to (yml) config file with outdir path, etc.'
                   )
-parser.add_option('--fnovbase', dest='fnov_base',
+parser.add_option('--fonvbase', dest='fonv_base',
                   action='store_true', default=False,
-                  help='flag to run fnov vector metric on baseline+weather ' +
+                  help='flag to run fonv vector metric on baseline+weather ' +
                   'sims; saves data.'
                   )
 parser.add_option('--chimera', dest='chimera',
@@ -31,7 +31,7 @@ start_time = time.time()
 options, _ = parser.parse_args()
 # read inputs
 config_path = options.config_path
-fnov_base = options.fnov_base
+fonv_base = options.fonv_base
 chimera = options.chimera
 cutoff_date = options.cutoff_date #'2026-03-01'
 if chimera and cutoff_date is None:
@@ -58,14 +58,14 @@ outdir_metrics= f'{outdir}/metrics/'
 os.makedirs(outdir_metrics, exist_ok=True)
 # now run
 # ---------------------------------------------------------------
-if fnov_base:
+if fonv_base:
     # ---------------------------------------------------------------
     time0 = time.time()
     print(f'## running vector metric for baseline sims ...')
     save_data = True
-    fnovs_time_all, fnovs_time_per_filter = {}, {}
+    fonvs_time_all, fonvs_time_per_filter = {}, {}
     # outdir for the interim outputs
-    subdir = f'{outdir_metrics}/fnovs_base'
+    subdir = f'{outdir_metrics}/fonvs_base'
     os.makedirs(subdir, exist_ok=True)
     # ---------------------------------------------------------------
     # loop over the two folders
@@ -81,7 +81,7 @@ if fnov_base:
             # median nvisits over survey area as a function of time
             # all filters
             constraint = "scheduler_note not like '%DD%'"
-            fnovs_time_all[db_tag] = get_fnovtime(constraint=constraint,
+            fonvs_time_all[db_tag] = get_fonvtime(constraint=constraint,
                                                   nside=nside,
                                                   time_points=time_points,
                                                   opsim_path=opsim_path,
@@ -93,9 +93,9 @@ if fnov_base:
             # now by filter
             for filt in 'ugrizy':
                 constraint = f"scheduler_note not like '%DD%' and filter='{filt}'"
-                if filt not in fnovs_time_per_filter:
-                    fnovs_time_per_filter[filt] = {}
-                fnovs_time_per_filter[filt][db_tag] = get_fnovtime(constraint=constraint,
+                if filt not in fonvs_time_per_filter:
+                    fonvs_time_per_filter[filt] = {}
+                fonvs_time_per_filter[filt][db_tag] = get_fonvtime(constraint=constraint,
                                                                    nside=nside,
                                                                    time_points=time_points,
                                                                    opsim_path=opsim_path,
@@ -105,13 +105,13 @@ if fnov_base:
                                                                    )
     # ---------------------------------------------------------------
     # now save
-    fname = 'fnovs_vector_base.pickle'
-    pickle.dump({'fnovs_time_all': fnovs_time_all,
-                 'fnovs_time_per_filter': fnovs_time_per_filter
+    fname = 'fonvs_vector_base.pickle'
+    pickle.dump({'fonvs_time_all': fonvs_time_all,
+                 'fonvs_time_per_filter': fonvs_time_per_filter
                  },
                  open(f'{outdir_metrics}/{fname}', 'wb')
                  )
-    print(f'## fnovs dicts saved in {fname}.')
+    print(f'## fonvs dicts saved in {fname}.')
     print(f'## time taken: {(time.time() - time0)/60:.2f} (min)')
     # ---------------------------------------------------------------
 
@@ -124,10 +124,10 @@ if chimera:
     outdir_chimera = f'{outdir}/chimera/'
     os.makedirs(outdir_chimera, exist_ok=True)
     # outdir for the interim outputs
-    subdir = f'{outdir_metrics}/fnovs_chimera/'
+    subdir = f'{outdir_metrics}/fonvs_chimera/'
     os.makedirs(subdir, exist_ok=True)
     # set up
-    chimera_fnovs_time_all, chimera_fnovs_time_per_filter = {}, {}
+    chimera_fonvs_time_all, chimera_fonvs_time_per_filter = {}, {}
     save_data = True
     # set up the baseline path
     baseline_path = [f for f in os.listdir(f'{basepath}/baseline/') if \
@@ -159,7 +159,7 @@ if chimera:
             # nvisits as a function of time
             # all filters
             constraint = "scheduler_note not like '%DD%'"
-            chimera_fnovs_time_all[db_tag] = get_fnovtime(constraint=constraint,
+            chimera_fonvs_time_all[db_tag] = get_fonvtime(constraint=constraint,
                                                           nside=nside,
                                                           time_points=time_points,
                                                           opsim_path=opsim_path,
@@ -171,9 +171,9 @@ if chimera:
             # now by filter
             for filt in 'ugrizy':
                 constraint = f"scheduler_note not like '%DD%' and filter='{filt}'"
-                if filt not in chimera_fnovs_time_per_filter:
-                    chimera_fnovs_time_per_filter[filt] = {}
-                chimera_fnovs_time_per_filter[filt][db_tag] = get_fnovtime(constraint=constraint,
+                if filt not in chimera_fonvs_time_per_filter:
+                    chimera_fonvs_time_per_filter[filt] = {}
+                chimera_fonvs_time_per_filter[filt][db_tag] = get_fonvtime(constraint=constraint,
                                                                            nside=nside,
                                                                            time_points=time_points,
                                                                            opsim_path=opsim_path,

@@ -4,7 +4,7 @@ import healpy as hp
 import numpy as np
 import os
 
-__all__ = ['FONvTime', 'get_fnovtime']
+__all__ = ['FONvTime', 'get_fonvtime']
 
 ###############################################################################
 # fonov vector metric; from
@@ -40,7 +40,7 @@ class FONvTime(maf.metrics.BaseMetric):
         return result
 
 ###############################################################################
-def get_fnovtime(constraint, nside, time_points, opsim_path, outdir,
+def get_fonvtime(constraint, nside, time_points, opsim_path, outdir,
                  save_data=False, output_tag=None
                  ):
     """
