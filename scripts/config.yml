@@ -2,6 +2,21 @@
 basepath: '/sdf/data/rubin/shared/fbs_sims/sims_longterm_tests/'
 outdir: '/sdf/data/rubin/shared/fbs_sims/sims_longterm_tests/'
 
+# things need for bespoke sims
+baseline_py_path: '/sdf/data/rubin/shared/fbs_sims/sims_longterm_tests/baseline/baseline.py'
+illum_limit: 40.0
+scheduler_args: {
+                'verbose': True,
+                'nexp': 2,
+                'nside': 32,
+                'mjd_plus': 0,
+                'split_long': False,
+                'no_too': False,
+                'out_dir': '',
+                'dbroot': None,
+                'snapshot_dir': '',
+                'survey_length': 3652.5
+                }
 # misc
 nside: 64
 timepts: [0, 3652, 100]  # start, end, npoints
